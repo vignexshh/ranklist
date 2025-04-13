@@ -16,7 +16,7 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
-    "baseUrl": ".", // 🔥 THIS is necessary for path aliasing
+    "baseUrl": ".", 
     "paths": {
       "@/*": [
         "./*"
