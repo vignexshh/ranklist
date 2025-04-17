@@ -6,13 +6,17 @@ export async function GET() {
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
     
-    // Perform a simple query to test connection
+    // Perform a simple query to test connection.
     const collection = db.collection('unifiedCollection');
     const count = await collection.countDocuments();
+    const uniqueListCategory = await collection.distinct("listSubCategory");
+    const uniqueListSubCategories = await collection.distinct("listSubCategory", { type: "Telangana BDS Competent Quota" });
     
     return NextResponse.json({ 
       status: 'connected', 
-      documentCount: count
+      documentCount: count,
+      unique_categories : uniqueListCategory,
+      sub_cat: uniqueListSubCategories
     });
   } catch (error) {
     console.error('MongoDB connection error:', error);
