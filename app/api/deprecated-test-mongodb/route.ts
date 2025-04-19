@@ -10,7 +10,7 @@ export async function GET() {
     const collection = db.collection('unifiedCollection');
     const count = await collection.countDocuments();
     const uniqueListCategory = await collection.distinct("listSubCategory");
-    const uniqueListSubCategories = await collection.distinct("listSubCategory", { type: "Telangana BDS Competent Quota" });
+    const uniqueListSubCategories = await collection.distinct("listSubCategory");
     
     return NextResponse.json({ 
       status: 'connected', 
@@ -21,7 +21,7 @@ export async function GET() {
   } catch (error) {
     console.error('MongoDB connection error:', error);
     return NextResponse.json(
-      { error: 'Failed to connect to database' },
+      { error: 'Failed to connect to database' }, 
       { status: 500 }
     );
   }

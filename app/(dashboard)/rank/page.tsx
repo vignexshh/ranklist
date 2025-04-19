@@ -8,24 +8,6 @@ import {
 } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 
-// Fields we want to show as filter options
-const filterableFields = ["SNo", "Rank", "Allotted Quota", "Course", 
-                        "Allotted Category", "Candidate Category", "Remarks"];
-
-// Default columns to show before data is loaded
-const defaultColumns: GridColDef[] = [
-  { field: "SNo", headerName: "S.No", width: 100 },
-  { field: "Rank", headerName: "Rank", width: 120 },
-  { field: "Allotted Quota", headerName: "Allotted Quota", flex: 1 },
-  { field: "Allotted Institute", headerName: "Allotted Institute", flex: 1.5 },
-  { field: "Course", headerName: "Course", flex: 1 },
-  { field: "Allotted Category", headerName: "Allotted Category", flex: 1 },
-  { field: "Candidate Category", headerName: "Candidate Category", flex: 1 },
-  { field: "Remarks", headerName: "Remarks", width: 120 },
-  { field: "listCategory", headerName: "List Category", flex: 1 },
-  { field: "listSubCategory", headerName: "List Subcategory", flex: 1 },
-];
-
 export default function MedicalDataPage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any[]>([]);
@@ -41,20 +23,103 @@ export default function MedicalDataPage() {
   const [fieldOptions, setFieldOptions] = useState<Record<string, string[]>>({});
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string | null>>({});
   const [loadingFieldOptions, setLoadingFieldOptions] = useState<Record<string, boolean>>({});
+  
+  // Dynamic filterableFields state instead of constant
+  const [filterableFields, setFilterableFields] = useState<string[]>([]);
+  const [defaultColumns, setDefaultColumns] = useState<GridColDef[]>([]);
 
-  // Initial load and whenever filters change
+  // Initial load for data and fields structure
+  useEffect(() => {
+    // Initial data fetch to get structure
+    const initializeDataStructure = async () => {
+      try {
+        const response = await fetch(`/api/medical-data?page=0&pageSize=1`);
+        const result = await response.json();
+        
+        if (response.ok && result.data && result.data.length > 0) {
+          // Get field names from the first record
+          const sampleRecord = result.data[0];
+          const fieldNames = Object.keys(sampleRecord).filter(key => 
+            key !== "_id" && key !== "id"
+          );
+          
+          // Set filterable fields - we'll make fields with string values filterable
+          const potentialFilterFields = fieldNames.filter(field => 
+            typeof sampleRecord[field] === 'string' || 
+            sampleRecord[field] === null || 
+            sampleRecord[field] === undefined
+          );
+          setFilterableFields(potentialFilterFields);
+          
+          // Create default columns
+          const generatedColumns: GridColDef[] = fieldNames.map(field => ({
+            field,
+            headerName: field,
+            // Customize based on field characteristics
+            width: ["SNo", "Rank", "Remarks"].includes(field) ? 100 : undefined,
+            flex: field.toLowerCase().includes("institute") ? 1.5 : 1,
+          }));
+          setDefaultColumns(generatedColumns);
+          
+          // Now fetch distinct values for each filterable field
+          await fetchAllFieldOptions(potentialFilterFields);
+        }
+      } catch (error) {
+        console.error("Failed to initialize data structure:", error);
+      }
+    };
+    
+    initializeDataStructure();
+  }, []);
+
+  // Main data fetch when filters change
   useEffect(() => {
     fetchData();
   }, [page, selectedCategory, selectedSubcategory, selectedFilters]);
 
   // Fetch field options when category/subcategory changes
   useEffect(() => {
-    if (selectedCategory) {
-      filterableFields.forEach(field => {
-        fetchFieldValues(field);
-      });
+    if ((selectedCategory || selectedSubcategory) && filterableFields.length > 0) {
+      fetchAllFieldOptions(filterableFields);
     }
-  }, [selectedCategory, selectedSubcategory]);
+  }, [selectedCategory, selectedSubcategory, filterableFields]);
+
+  // New function to fetch all field options in parallel
+  const fetchAllFieldOptions = async (fields: string[]) => {
+    fields.forEach(field => {
+      setLoadingFieldOptions(prev => ({ ...prev, [field]: true }));
+    });
+    
+    try {
+      // Create an array of promises for all field value fetches
+      const fetchPromises = fields.map(field => fetchFieldValuesInternal(field));
+      
+      // Wait for all to complete
+      await Promise.all(fetchPromises);
+    } catch (error) {
+      console.error("Error fetching field options:", error);
+    }
+  };
+
+  const fetchFieldValuesInternal = async (field: string) => {
+    try {
+      let url = `/api/field-values?field=${encodeURIComponent(field)}`;
+      
+      if (selectedCategory) url += `&category=${encodeURIComponent(selectedCategory)}`;
+      if (selectedSubcategory) url += `&subcategory=${encodeURIComponent(selectedSubcategory)}`;
+      
+      const response = await fetch(url);
+      const result = await response.json();
+      
+      if (response.ok) {
+        setFieldOptions(prev => ({ ...prev, [field]: result.values || [] }));
+      }
+    } catch (error) {
+      console.error(`Failed to fetch values for ${field}:`, error);
+    } finally {
+      setLoadingFieldOptions(prev => ({ ...prev, [field]: false }));
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -82,6 +147,48 @@ export default function MedicalDataPage() {
         setTotal(result.metadata.total);
         setCategories(result.metadata.categories || []);
         setSubcategories(result.metadata.subcategories || []);
+        
+        // If we haven't set filterable fields yet and have data, set them now
+        if (filterableFields.length === 0 && processedData.length > 0) {
+          const fieldNames = Object.keys(processedData[0]).filter(key => 
+            key !== "id" && key !== "_id"
+          );
+          // Prefer string fields for filtering
+          const stringFields = fieldNames.filter(field => 
+            typeof processedData[0][field] === 'string' || 
+            processedData[0][field] === null
+          );
+          setFilterableFields(stringFields);
+          
+          // Also fetch options for these fields
+          await fetchAllFieldOptions(stringFields);
+        }
+        
+        // Even if we already have filterable fields, update distinct values based on the new data
+        if (processedData.length > 0 && !selectedCategory && !selectedSubcategory) {
+          const distinctValues: Record<string, Set<string>> = {};
+          
+          // Process the current data to extract distinct values for each field
+          filterableFields.forEach(field => {
+            distinctValues[field] = new Set();
+            processedData.forEach(item => {
+              if (item[field] && typeof item[field] === 'string') {
+                distinctValues[field].add(item[field]);
+              }
+            });
+          });
+          
+          // Update the field options with new distinct values from current page
+          Object.entries(distinctValues).forEach(([field, valueSet]) => {
+            const values = Array.from(valueSet);
+            if (values.length > 0) {
+              setFieldOptions(prev => ({ 
+                ...prev, 
+                [field]: [...new Set([...(prev[field] || []), ...values])].sort()
+              }));
+            }
+          });
+        }
       }
     } catch (error) {
       console.error("Failed to fetch data:", error);
@@ -92,23 +199,7 @@ export default function MedicalDataPage() {
 
   const fetchFieldValues = async (field: string) => {
     setLoadingFieldOptions(prev => ({ ...prev, [field]: true }));
-    try {
-      let url = `/api/field-values?field=${encodeURIComponent(field)}`;
-      
-      if (selectedCategory) url += `&category=${encodeURIComponent(selectedCategory)}`;
-      if (selectedSubcategory) url += `&subcategory=${encodeURIComponent(selectedSubcategory)}`;
-      
-      const response = await fetch(url);
-      const result = await response.json();
-      
-      if (response.ok) {
-        setFieldOptions(prev => ({ ...prev, [field]: result.values }));
-      }
-    } catch (error) {
-      console.error(`Failed to fetch values for ${field}:`, error);
-    } finally {
-      setLoadingFieldOptions(prev => ({ ...prev, [field]: false }));
-    }
+    await fetchFieldValuesInternal(field);
   };
 
   const handleCategoryChange = (_: any, value: string | null) => {
@@ -131,17 +222,20 @@ export default function MedicalDataPage() {
 
   // Use useMemo to generate columns based on data
   const columns = useMemo(() => {
-    if (data.length === 0) return defaultColumns;
-    
-    return Object.keys(data[0])
-      .filter(key => key !== "id" && key !== "_id")
-      .map(key => ({
-        field: key,
-        headerName: key,
-        flex: 1,
-        minWidth: 150
-      }));
-  }, [data]);
+    // If we have data, generate columns dynamically from the data structure
+    if (data.length > 0) {
+      return Object.keys(data[0])
+        .filter(key => key !== "id" && key !== "_id")
+        .map(key => ({
+          field: key,
+          headerName: key,
+          flex: key.toLowerCase().includes("institute") ? 1.5 : 1,
+          width: ["SNo", "Rank", "Remarks"].includes(key) ? 100 : undefined,
+        }));
+    }
+    // Otherwise return the default columns we generated at initialization
+    return defaultColumns;
+  }, [data, defaultColumns]);
 
   return (
     <Container maxWidth="xl">
@@ -178,7 +272,7 @@ export default function MedicalDataPage() {
             </Grid>
             
             {/* Dynamic Field Filters */}
-            {selectedCategory && filterableFields.map(field => (
+            {filterableFields.map(field => (
               <Grid item xs={12} md={4} key={field}>
                 <Autocomplete
                   options={fieldOptions[field] || []}
@@ -186,7 +280,7 @@ export default function MedicalDataPage() {
                   onChange={handleFieldFilterChange(field)}
                   loading={loadingFieldOptions[field]}
                   renderInput={(params) => (
-                    <TextField 
+                    <TextField  
                       {...params} 
                       label={field} 
                       variant="outlined" 
@@ -210,17 +304,24 @@ export default function MedicalDataPage() {
         
         {/* Data Table */}
         <Paper sx={{ height: 600, width: '100%' }}>
-          <DataGrid
-            rows={data}
-            columns={columns}
-            loading={loading}
-            rowCount={total}
-            pageSizeOptions={[100]}
-            paginationModel={{ page, pageSize }}
-            paginationMode="server"
-            onPaginationModelChange={(model) => setPage(model.page)}
-            disableRowSelectionOnClick
-          />
+          {loading && filterableFields.length === 0 ? (
+            <Box p={3}>
+              <Skeleton variant="rectangular" height={40} sx={{ mb: 2 }} />
+              <Skeleton variant="rectangular" height={500} />
+            </Box>
+          ) : (
+            <DataGrid
+              rows={data}
+              columns={columns}
+              loading={loading}
+              rowCount={total}
+              pageSizeOptions={[100]}
+              paginationModel={{ page, pageSize }}
+              paginationMode="server"
+              onPaginationModelChange={(model) => setPage(model.page)}
+              disableRowSelectionOnClick
+            />
+          )}
         </Paper>
       </Box>
     </Container>
