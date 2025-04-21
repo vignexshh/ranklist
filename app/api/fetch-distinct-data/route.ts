@@ -6,27 +6,17 @@ export async function GET(req: NextRequest) {
   const expectedKey = process.env.API_SECRET_KEY;
 
   if (apiKey !== expectedKey) {
-    return NextResponse.json({ error: 'You are not authorized to access this thing 🐰' }, { status: 401 });
+    return NextResponse.json({ error: 'API Error : Failed to fetch data' }, { status: 401 });
   }
 
   const data = await getFullData();
   const collection = data.collection(process.env.MONGODB_COLLECTION!);
 
-  // Get all distinct field names using aggregation
-  const result = await collection.aggregate([
-    { $project: { keys: { $objectToArray: "$$ROOT" } } },
-    { $unwind: "$keys" },
-    { $group: { _id: null, allKeys: { $addToSet: "$keys.k" } } }
-  ]).toArray();
-
-  const allFields = result[0]?.allKeys;
-  if (!allFields || allFields.length === 0) {
-    return NextResponse.json({ error: 'No fields found in the collection' }, { status: 404 });
-  }
-
-  // Fetch distinct values for each field
+  // Fetch distinct values for specific fields
+  const fieldsToFetch = ['listCategory', 'listSubCategory'];
   const distinctData: Record<string, any[]> = {};
-  for (const field of allFields) {
+
+  for (const field of fieldsToFetch) {
     try {
       distinctData[field] = await collection.distinct(field);
     } catch (err) {
