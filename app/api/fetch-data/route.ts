@@ -1,4 +1,3 @@
-// used for client side api testing 
 import { NextResponse, NextRequest } from 'next/server';
 import { getFullData } from '@/app/lib/getFullData';    
 
