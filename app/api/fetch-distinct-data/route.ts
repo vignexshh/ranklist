@@ -1,19 +1,29 @@
+// /api/fetch-distinct-data/route.ts
 import { NextResponse, NextRequest } from 'next/server';
 import { getFullData } from '@/app/lib/getFullData';
+import jwt from 'jsonwebtoken';
 
 export async function GET(req: NextRequest) {
   const apiKey = req.headers.get('x-api-key');
-  const expectedKey = process.env.API_SECRET_KEY;
+  const secretKey = process.env.API_SECRET_KEY;
 
-  if (apiKey !== expectedKey) {
-    return NextResponse.json({ error: 'API Error : Failed to fetch data' }, { status: 401 });
+  if (!apiKey || !secretKey) {
+    return NextResponse.json({ error: 'Missing credentials' }, { status: 400 });
+  }
+
+  try {
+    // ✅ Verify token
+    const decoded = jwt.verify(apiKey, secretKey);
+    console.log('Decoded token:', decoded);
+  } catch (err) {
+    return NextResponse.json({ error: 'Invalid or expired session, Try reloading the application. If problem persists, contact support' }, { status: 401 });
   }
 
   const data = await getFullData();
   const collection = data.collection(process.env.MONGODB_COLLECTION!);
 
-  // Fetch distinct values for specific fields
-  const fieldsToFetch = ['listCategory', 'listSubCategory'];
+  // Fetch distinct values
+  const fieldsToFetch = ['listCategory'];
   const distinctData: Record<string, any[]> = {};
 
   for (const field of fieldsToFetch) {
