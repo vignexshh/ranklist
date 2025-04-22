@@ -1,18 +1,21 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Container, Autocomplete, TextField, Box } from '@mui/material';
+import { Container, Autocomplete, TextField, Box, Grid, CircularProgress } from '@mui/material';
 
 const GetCategory: React.FC = () => {
   const [publicToken, setPublicToken] = useState<string | null>(null);
-  const [listCategoryOptions, setListCategoryOptions] = useState<string[]>([]); // Categories
-  const [listSubCategoryOptions, setListSubCategoryOptions] = useState<string[]>([]); // Subcategories
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null); // Selected category
-  const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null); // Selected subcategory
-  const [dynamicFields, setDynamicFields] = useState<Record<string, any[]>>({}); // Dynamic fields from API
+  const [listCategoryOptions, setListCategoryOptions] = useState<string[]>([]);
+  const [listSubCategoryOptions, setListSubCategoryOptions] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
+  const [dynamicFields, setDynamicFields] = useState<Record<string, any[]>>({});
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch public token once
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [loadingSubCategories, setLoadingSubCategories] = useState(false);
+  const [loadingDynamicFields, setLoadingDynamicFields] = useState(false);
+
   useEffect(() => {
     const fetchPublicToken = async () => {
       try {
@@ -20,7 +23,7 @@ const GetCategory: React.FC = () => {
         const data = await response.json();
 
         if (response.ok && data.publicToken) {
-          setPublicToken(data.publicToken); // Save token to state
+          setPublicToken(data.publicToken);
         } else {
           setError(data.error || 'Failed to fetch public token');
         }
@@ -32,11 +35,11 @@ const GetCategory: React.FC = () => {
     fetchPublicToken();
   }, []);
 
-  // Fetch distinct categories once publicToken is available
   useEffect(() => {
     const fetchCategories = async () => {
-      if (!publicToken) return; // Wait for token
+      if (!publicToken) return;
 
+      setLoadingCategories(true);
       try {
         const response = await fetch('/api/fetch-distinct-data', {
           headers: {
@@ -53,17 +56,19 @@ const GetCategory: React.FC = () => {
         }
       } catch (err) {
         setError('An unexpected error occurred while fetching categories');
+      } finally {
+        setLoadingCategories(false);
       }
     };
 
     fetchCategories();
   }, [publicToken]);
 
-  // Fetch subcategories when a category is selected
   useEffect(() => {
     const fetchSubCategories = async () => {
-      if (!selectedCategory || !publicToken) return; // Wait for selection and token
+      if (!selectedCategory || !publicToken) return;
 
+      setLoadingSubCategories(true);
       try {
         const response = await fetch('/api/fetch-distinct-subcategory', {
           method: 'POST',
@@ -83,17 +88,19 @@ const GetCategory: React.FC = () => {
         }
       } catch (err) {
         setError('An unexpected error occurred while fetching subcategories');
+      } finally {
+        setLoadingSubCategories(false);
       }
     };
 
     fetchSubCategories();
   }, [selectedCategory, publicToken]);
 
-  // Fetch dynamic fields when a subcategory is selected
   useEffect(() => {
     const fetchDynamicFields = async () => {
-      if (!selectedSubCategory || !publicToken) return; // Wait for selection and token
+      if (!selectedSubCategory || !publicToken) return;
 
+      setLoadingDynamicFields(true);
       try {
         const response = await fetch('/api/fetch-filters', {
           method: 'POST',
@@ -107,12 +114,14 @@ const GetCategory: React.FC = () => {
         const data = await response.json();
 
         if (response.ok && data.success) {
-          setDynamicFields(data.distinctfieldValues || {}); // Save dynamic fields to state
+          setDynamicFields(data.distinctfieldValues || {});
         } else {
           setError(data.error || 'Failed to fetch dynamic fields');
         }
       } catch (err) {
         setError('An unexpected error occurred while fetching dynamic fields');
+      } finally {
+        setLoadingDynamicFields(false);
       }
     };
 
@@ -120,39 +129,83 @@ const GetCategory: React.FC = () => {
   }, [selectedSubCategory, publicToken]);
 
   return (
-    <Container maxWidth="sm" style={{ marginTop: '2rem' }}>
+    <Container maxWidth="xl" style={{ marginTop: '2rem' }}>
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
-      {/* Autocomplete for Categories */}
       <Autocomplete
         options={listCategoryOptions}
-        renderInput={(params) => <TextField {...params} label="List Category" />}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label="List Category"
+            InputProps={{
+              ...params.InputProps,
+              endAdornment: (
+                <>
+                  {loadingCategories ? <CircularProgress color="inherit" size={20} /> : null}
+                  {params.InputProps.endAdornment}
+                </>
+              ),
+            }}
+          />
+        )}
         style={{ marginBottom: '1rem' }}
         onChange={(event, value) => {
-          setSelectedCategory(value); // Update state with selected category
+          setSelectedCategory(value);
         }}
-      />
-      <Box> 
-        {/* Autocomplete for Categories */}
-      {/* Autocomplete for Subcategories */}
-      <Autocomplete
-        options={listSubCategoryOptions}
-        renderInput={(params) => <TextField {...params} label="List Sub-Category" />}
-        style={{ marginBottom: '1rem' }}
-        onChange={(event, value) => {
-          setSelectedSubCategory(value); // Update state with selected subcategory
-        }}
+        loading={loadingCategories}
       />
 
-      {/* Dynamic Autocomplete Components */}
-      {Object.keys(dynamicFields).map((field) => (
-        <Autocomplete
-          key={field}
-          options={dynamicFields[field]}
-          renderInput={(params) => <TextField {...params} label={field} />}
-          style={{ marginBottom: '1rem' }}
-        />
-      ))}
+      <Autocomplete
+        options={listSubCategoryOptions}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label="List Sub-Category"
+            InputProps={{
+              ...params.InputProps,
+              endAdornment: (
+                <>
+                  {loadingSubCategories ? <CircularProgress color="inherit" size={20} /> : null}
+                  {params.InputProps.endAdornment}
+                </>
+              ),
+            }}
+          />
+        )}
+        style={{ marginBottom: '1rem' }}
+        onChange={(event, value) => {
+          setSelectedSubCategory(value);
+        }}
+        loading={loadingSubCategories}
+      />
+
+      <Box>
+        <Grid spacing={5}>
+          {Object.keys(dynamicFields).map((field) => (
+            <Autocomplete
+              key={field}
+              options={dynamicFields[field]}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label={field}
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {loadingDynamicFields ? <CircularProgress color="inherit" size={20} /> : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
+                />
+              )}
+              style={{ marginBottom: '1rem' }}
+              loading={loadingDynamicFields}
+            />
+          ))}
+        </Grid>
       </Box>
     </Container>
   );
