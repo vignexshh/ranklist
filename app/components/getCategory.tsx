@@ -1,12 +1,15 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Container, Autocomplete, TextField } from '@mui/material';
+import { Container, Autocomplete, TextField, Box } from '@mui/material';
 
 const GetCategory: React.FC = () => {
   const [publicToken, setPublicToken] = useState<string | null>(null);
-  const [listCategoryOptions, setListCategoryOptions] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null); // State for selected value
+  const [listCategoryOptions, setListCategoryOptions] = useState<string[]>([]); // Categories
+  const [listSubCategoryOptions, setListSubCategoryOptions] = useState<string[]>([]); // Subcategories
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null); // Selected category
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null); // Selected subcategory
+  const [dynamicFields, setDynamicFields] = useState<Record<string, any[]>>({}); // Dynamic fields from API
   const [error, setError] = useState<string | null>(null);
 
   // Fetch public token once
@@ -29,9 +32,9 @@ const GetCategory: React.FC = () => {
     fetchPublicToken();
   }, []);
 
-  // Fetch distinct data once publicToken is available
+  // Fetch distinct categories once publicToken is available
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchCategories = async () => {
       if (!publicToken) return; // Wait for token
 
       try {
@@ -46,57 +49,111 @@ const GetCategory: React.FC = () => {
         if (response.ok && data.success) {
           setListCategoryOptions(data.distinctData?.listCategory || []);
         } else {
-          setError(data.error || 'Failed to fetch data');
+          setError(data.error || 'Failed to fetch categories');
         }
       } catch (err) {
-        setError('An unexpected error occurred');
+        setError('An unexpected error occurred while fetching categories');
       }
     };
 
-    fetchData();
+    fetchCategories();
   }, [publicToken]);
 
-  // Send selected value to API
+  // Fetch subcategories when a category is selected
   useEffect(() => {
-    const sendSelectedValue = async () => {
-      if (!selectedCategory) return; // Wait for a selection
+    const fetchSubCategories = async () => {
+      if (!selectedCategory || !publicToken) return; // Wait for selection and token
 
       try {
-        const response = await fetch('/api/handle-selected-category', {
+        const response = await fetch('/api/fetch-distinct-subcategory', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'x-api-key': publicToken,
           },
           body: JSON.stringify({ category: selectedCategory }),
         });
 
         const data = await response.json();
 
-        if (!response.ok) {
-          console.error('Failed to send selected category:', data.error);
+        if (response.ok && data.success) {
+          setListSubCategoryOptions(data.distinctSubCategories || []);
         } else {
-          console.log('Category successfully sent to API:', data);
+          setError(data.error || 'Failed to fetch subcategories');
         }
       } catch (err) {
-        console.error('Error sending selected category:', err);
+        setError('An unexpected error occurred while fetching subcategories');
       }
     };
 
-    sendSelectedValue();
-  }, [selectedCategory]);
+    fetchSubCategories();
+  }, [selectedCategory, publicToken]);
+
+  // Fetch dynamic fields when a subcategory is selected
+  useEffect(() => {
+    const fetchDynamicFields = async () => {
+      if (!selectedSubCategory || !publicToken) return; // Wait for selection and token
+
+      try {
+        const response = await fetch('/api/fetch-filters', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': publicToken,
+          },
+          body: JSON.stringify({ subCategory: selectedSubCategory }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          setDynamicFields(data.distinctfieldValues || {}); // Save dynamic fields to state
+        } else {
+          setError(data.error || 'Failed to fetch dynamic fields');
+        }
+      } catch (err) {
+        setError('An unexpected error occurred while fetching dynamic fields');
+      }
+    };
+
+    fetchDynamicFields();
+  }, [selectedSubCategory, publicToken]);
 
   return (
     <Container maxWidth="sm" style={{ marginTop: '2rem' }}>
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
+      {/* Autocomplete for Categories */}
       <Autocomplete
         options={listCategoryOptions}
         renderInput={(params) => <TextField {...params} label="List Category" />}
         style={{ marginBottom: '1rem' }}
         onChange={(event, value) => {
-          setSelectedCategory(value); // Update state with selected value
+          setSelectedCategory(value); // Update state with selected category
         }}
       />
+      <Box> 
+        {/* Autocomplete for Categories */}
+      {/* Autocomplete for Subcategories */}
+      <Autocomplete
+        options={listSubCategoryOptions}
+        renderInput={(params) => <TextField {...params} label="List Sub-Category" />}
+        style={{ marginBottom: '1rem' }}
+        onChange={(event, value) => {
+          setSelectedSubCategory(value); // Update state with selected subcategory
+        }}
+      />
+
+      {/* Dynamic Autocomplete Components */}
+      {Object.keys(dynamicFields).map((field) => (
+        <Autocomplete
+          key={field}
+          options={dynamicFields[field]}
+          renderInput={(params) => <TextField {...params} label={field} />}
+          style={{ marginBottom: '1rem' }}
+        />
+      ))}
+      </Box>
     </Container>
   );
 };
