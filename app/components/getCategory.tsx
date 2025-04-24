@@ -1,5 +1,5 @@
 'use client';
-
+// need to use client component to use hooks
 import React, { useEffect, useState } from 'react';
 import { Container, Autocomplete, TextField, Box, Grid, CircularProgress } from '@mui/material';
 
@@ -10,6 +10,7 @@ const GetCategory: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
   const [dynamicFields, setDynamicFields] = useState<Record<string, any[]>>({});
+  
   const [error, setError] = useState<string | null>(null);
 
   const [loadingCategories, setLoadingCategories] = useState(false);
