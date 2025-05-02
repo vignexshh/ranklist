@@ -1,7 +1,8 @@
 'use client';
-// need to use client component to use hooks
+
 import React, { useEffect, useState } from 'react';
-import { Container, Autocomplete, TextField, Box, Grid, CircularProgress } from '@mui/material';
+import { Container, Autocomplete, TextField, Box, Grid, CircularProgress, Typography } from '@mui/material';
+import DataDisplayGrid from './DataDisplayGrid';
 
 const GetCategory: React.FC = () => {
   const [publicToken, setPublicToken] = useState<string | null>(null);
@@ -10,13 +11,29 @@ const GetCategory: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
   const [dynamicFields, setDynamicFields] = useState<Record<string, any[]>>({});
-  
+  const [dynamicFieldValues, setDynamicFieldValues] = useState<Record<string, string | null>>({});
   const [error, setError] = useState<string | null>(null);
 
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [loadingSubCategories, setLoadingSubCategories] = useState(false);
   const [loadingDynamicFields, setLoadingDynamicFields] = useState(false);
 
+  // Reset dependent selections when parent selection changes
+  useEffect(() => {
+    if (selectedCategory !== null && selectedSubCategory !== null) {
+      setSelectedSubCategory(null);
+      setDynamicFields({});
+      setDynamicFieldValues({});
+    }
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    if (selectedSubCategory !== null) {
+      setDynamicFieldValues({});
+    }
+  }, [selectedSubCategory]);
+
+  // Fetch public token
   useEffect(() => {
     const fetchPublicToken = async () => {
       try {
@@ -36,6 +53,7 @@ const GetCategory: React.FC = () => {
     fetchPublicToken();
   }, []);
 
+  // Fetch categories
   useEffect(() => {
     const fetchCategories = async () => {
       if (!publicToken) return;
@@ -65,6 +83,7 @@ const GetCategory: React.FC = () => {
     fetchCategories();
   }, [publicToken]);
 
+  // Fetch subcategories
   useEffect(() => {
     const fetchSubCategories = async () => {
       if (!selectedCategory || !publicToken) return;
@@ -97,6 +116,7 @@ const GetCategory: React.FC = () => {
     fetchSubCategories();
   }, [selectedCategory, publicToken]);
 
+  // Fetch dynamic fields
   useEffect(() => {
     const fetchDynamicFields = async () => {
       if (!selectedSubCategory || !publicToken) return;
@@ -116,6 +136,12 @@ const GetCategory: React.FC = () => {
 
         if (response.ok && data.success) {
           setDynamicFields(data.distinctfieldValues || {});
+          // Initialize field values with null
+          const initialValues: Record<string, string | null> = {};
+          Object.keys(data.distinctfieldValues || {}).forEach(field => {
+            initialValues[field] = null;
+          });
+          setDynamicFieldValues(initialValues);
         } else {
           setError(data.error || 'Failed to fetch dynamic fields');
         }
@@ -133,81 +159,112 @@ const GetCategory: React.FC = () => {
     <Container maxWidth="xl" style={{ marginTop: '2rem' }}>
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
-      <Autocomplete
-        options={listCategoryOptions}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label="List Category"
-            InputProps={{
-              ...params.InputProps,
-              endAdornment: (
-                <>
-                  {loadingCategories ? <CircularProgress color="inherit" size={20} /> : null}
-                  {params.InputProps.endAdornment}
-                </>
-              ),
-            }}
-          />
-        )}
-        style={{ marginBottom: '1rem' }}
-        onChange={(event, value) => {
-          setSelectedCategory(value);
-        }}
-        loading={loadingCategories}
-      />
-
-      <Autocomplete
-        options={listSubCategoryOptions}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label="List Sub-Category"
-            InputProps={{
-              ...params.InputProps,
-              endAdornment: (
-                <>
-                  {loadingSubCategories ? <CircularProgress color="inherit" size={20} /> : null}
-                  {params.InputProps.endAdornment}
-                </>
-              ),
-            }}
-          />
-        )}
-        style={{ marginBottom: '1rem' }}
-        onChange={(event, value) => {
-          setSelectedSubCategory(value);
-        }}
-        loading={loadingSubCategories}
-      />
-
-      <Box>
-        <Grid spacing={5}>
-          {Object.keys(dynamicFields).map((field) => (
+      <Box sx={{ mb: 4 }}>
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6} md={4}>
             <Autocomplete
-              key={field}
-              options={dynamicFields[field]}
+              options={listCategoryOptions}
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label={field}
+                  label="List Category"
                   InputProps={{
                     ...params.InputProps,
                     endAdornment: (
                       <>
-                        {loadingDynamicFields ? <CircularProgress color="inherit" size={20} /> : null}
+                        {loadingCategories ? <CircularProgress color="inherit" size={20} /> : null}
                         {params.InputProps.endAdornment}
                       </>
                     ),
                   }}
                 />
               )}
-              style={{ marginBottom: '1rem' }}
-              loading={loadingDynamicFields}
+              fullWidth
+              onChange={(event, value) => {
+                setSelectedCategory(value);
+              }}
+              loading={loadingCategories}
+              value={selectedCategory}
             />
-          ))}
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={4}>
+            <Autocomplete
+              options={listSubCategoryOptions}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="List Sub-Category"
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {loadingSubCategories ? <CircularProgress color="inherit" size={20} /> : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
+                />
+              )}
+              fullWidth
+              onChange={(event, value) => {
+                setSelectedSubCategory(value);
+              }}
+              loading={loadingSubCategories}
+              value={selectedSubCategory}
+              disabled={!selectedCategory}
+            />
+          </Grid>
         </Grid>
       </Box>
+
+      {Object.keys(dynamicFields).length > 0 && (
+        <Box sx={{ mb: 4, p: 2, border: '1px solid #eee', borderRadius: 1 }}>
+          <Typography variant="h6" gutterBottom>
+            Filters
+          </Typography>
+          <Grid container spacing={2}>
+            {Object.keys(dynamicFields).map((field) => (
+              <Grid item xs={12} sm={6} md={4} key={field}>
+                <Autocomplete
+                  options={dynamicFields[field]}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label={field}
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {loadingDynamicFields ? <CircularProgress color="inherit" size={20} /> : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                    />
+                  )}
+                  fullWidth
+                  onChange={(event, value) => {
+                    setDynamicFieldValues(prev => ({
+                      ...prev,
+                      [field]: value
+                    }));
+                  }}
+                  loading={loadingDynamicFields}
+                  value={dynamicFieldValues[field] || null}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      )}
+
+      <DataDisplayGrid
+        publicToken={publicToken}
+        selectedCategory={selectedCategory}
+        selectedSubCategory={selectedSubCategory}
+        dynamicFieldValues={dynamicFieldValues}
+      />
     </Container>
   );
 };

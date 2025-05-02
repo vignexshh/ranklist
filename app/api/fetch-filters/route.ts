@@ -1,3 +1,4 @@
+//api/fetch-filters
 import { NextResponse, NextRequest } from 'next/server';
 import { getFullData } from '@/app/lib/getFullData';
 import jwt from 'jsonwebtoken';

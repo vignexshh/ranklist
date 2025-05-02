@@ -1,5 +1,7 @@
+// api/public/access-key
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
+import fs from 'fs'; // Import file system module if writing to a file
 
 export async function GET() {
     const privateToken = process.env.API_SECRET_KEY; // Your private token
@@ -13,6 +15,12 @@ export async function GET() {
         privateToken,                // Signing key (private token)
         { expiresIn: '1h' }          // Token expiration
     );
+
+    // Log the token to the console
+    // console.log(`Generated Public Token: ${publicToken}`);
+
+    // Optionally, write the token to a file (e.g., .env)
+    fs.writeFileSync('.env.public', `PUBLIC_TOKEN=${publicToken}\n`, { flag: 'w' });
 
     return NextResponse.json({ publicToken });
 }
