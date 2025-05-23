@@ -37,9 +37,25 @@ export default function GetCategories() {
     }
   };
 
+  const sendFiltersToServer = async (category: string | null, subCategory: string | null) => {
+    try {
+      await fetch("/api/filters", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ selectedCategory: category, selectedSubCategory: subCategory }),
+      });
+      console.log("Sent filters to server:", { selectedCategory: category, selectedSubCategory: subCategory });
+    } catch (error) {
+      console.error("Failed to send filters to server:", error);
+    }
+  };
+
   const handleSubCategoryChange = (_event: any, newValue: string | null) => {
     setSelectedSubCategory(newValue);
     console.log("Selected subcategory:", newValue);
+    sendFiltersToServer(selectedCategory, newValue);
   };
 
   if (loadingCategories) return <CircularProgress />;
