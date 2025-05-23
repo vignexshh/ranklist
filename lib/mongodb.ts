@@ -19,12 +19,14 @@ if (process.env.NODE_ENV === "development") {
   if (!globalWithMongo._mongoClientPromise) {
     client = new MongoClient(uri, options);
     globalWithMongo._mongoClientPromise = client.connect();
+    console.log("MongoDB client connected in development mode.");
   }
   clientPromise = globalWithMongo._mongoClientPromise;
 } else {
   // In production, create a new client instance
   client = new MongoClient(uri, options);
   clientPromise = client.connect();
+  console.log("MongoDB client connected in production mode.");
 }
 
 export default clientPromise;
