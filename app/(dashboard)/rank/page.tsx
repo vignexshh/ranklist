@@ -7,9 +7,9 @@ import GetCategories from '@/components/GetCategories';
 export default function Dashboard() {
 
   return (
-    <Container maxWidth="sm" style={{ marginTop: '2rem' }}>
-      <Box sx={{ bgcolor: 'white', padding: '2rem', borderRadius: '8px' }}>
-        <GetCategories/>
+    <Container maxWidth={false} disableGutters style={{ width: '100%', margin: 0, padding: 0 }}>
+      <Box sx={{ bgcolor: 'white', width: '100%', minHeight: '100vh', p: 4 }}>
+      <GetCategories />
       </Box>
     </Container>
   );

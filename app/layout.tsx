@@ -8,7 +8,6 @@ import type { Navigation } from '@toolpad/core/AppProvider';
 import theme from '../theme';
 import { log } from 'console';
 import type { Metadata } from 'next';
-import ApolloWrapper from "@/components/ApolloWrapper";
 
 
 const NAVIGATION: Navigation = [
@@ -50,7 +49,7 @@ export default function RootLayout(props: { children: React.ReactNode }) {
         <link rel='icon' href='/favicon.png'/>
          </head>
       <body>
-      <ApolloWrapper>
+     
           <AppRouterCacheProvider options={{ enableCssLayer: true }}>
             <React.Suspense fallback={<LinearProgress />}>
               <NextAppProvider
@@ -62,7 +61,7 @@ export default function RootLayout(props: { children: React.ReactNode }) {
               </NextAppProvider>
             </React.Suspense>
           </AppRouterCacheProvider>
-         </ApolloWrapper>
+     
       </body>
     </html>
   );
