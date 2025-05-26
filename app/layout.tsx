@@ -8,6 +8,7 @@ import type { Navigation } from '@toolpad/core/AppProvider';
 import theme from '../theme';
 import { log } from 'console';
 import type { Metadata } from 'next';
+import SessionProviderWrapper from "@/components/SessionProviderWrapper";
 
 
 const NAVIGATION: Navigation = [
@@ -49,6 +50,7 @@ export default function RootLayout(props: { children: React.ReactNode }) {
         <link rel='icon' href='/favicon.png'/>
          </head>
       <body>
+        <SessionProviderWrapper> 
      
           <AppRouterCacheProvider options={{ enableCssLayer: true }}>
             <React.Suspense fallback={<LinearProgress />}>
@@ -61,6 +63,7 @@ export default function RootLayout(props: { children: React.ReactNode }) {
               </NextAppProvider>
             </React.Suspense>
           </AppRouterCacheProvider>
+          </SessionProviderWrapper>
      
       </body>
     </html>
