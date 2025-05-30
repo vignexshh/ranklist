@@ -4,7 +4,6 @@ import { Container, Box, CircularProgress, Button, Avatar } from '@mui/material'
 import { useEffect, useState } from 'react';
 import GetCategories from '@/components/GetCategories';
 import { useSession, signOut } from "next-auth/react"
-import AutoImageCarousel from '@/components/AutoImageSlider';
 
 
 export default function Dashboard() {
@@ -16,7 +15,7 @@ export default function Dashboard() {
   return (
     <Container maxWidth={false} disableGutters style={{ width: '100%', margin: 0, padding: 0 }}>
 
-      <Box> <AutoImageCarousel/> </Box>
+
 
       <Box sx={{ bgcolor: 'white', width: '100%', minHeight: '100vh', p: 4 }}>
 
