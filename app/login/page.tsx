@@ -2,12 +2,12 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-
+import { Button, Box, Typography } from "@mui/material";  
 export default function LoginPage() {
   return (
-    <div>
-      <h2>Login with Google</h2>
-      <button onClick={() => signIn("google",{ callbackUrl: "/rank" })}>Sign in</button>
-    </div>
+    <Box>
+        <Typography>Login with Google</Typography>
+      <Button onClick={() => signIn("google",{ callbackUrl: "/rank" })}>Sign in</Button>
+    </Box>
   );
 }
