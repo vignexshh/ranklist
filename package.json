@@ -32,7 +32,6 @@
     "npm": "^11.4.1",
     "react": "^19",
     "react-dom": "^19",
-    "react-swipeable-views": "^0.14.0",
     "swiper": "^11.2.8",
     "swr": "^2.3.3"
   },
