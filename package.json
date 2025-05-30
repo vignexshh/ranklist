@@ -32,6 +32,8 @@
     "npm": "^11.4.1",
     "react": "^19",
     "react-dom": "^19",
+    "react-swipeable-views": "^0.14.0",
+    "swiper": "^11.2.8",
     "swr": "^2.3.3"
   },
   "devDependencies": {
@@ -39,6 +41,7 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/swiper": "^5.4.3",
     "eslint": "^8",
     "eslint-config-next": "^15",
     "prisma": "^6.8.2",
