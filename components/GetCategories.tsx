@@ -197,18 +197,25 @@ export default function GetCategories() {
       <Box>
         
         <Grid container spacing={2}>
-          {Object.entries(distinctFields).map(([key, options], idx) => (
-            <Grid item xs={12} sm={6} key={key}>
-              <Autocomplete
-          options={options}
-          value={dynamicSelections[key] || null}
-          onChange={(_e, value) => handleDynamicSelection(key, value)}
-          renderInput={(params) => (
-            <TextField {...params} label={key} variant="outlined" />
-          )}
-              />
-            </Grid>
-          ))}
+          {Object.entries(distinctFields)
+            .filter(([key]) => {
+              const ignoreList = (process.env.NEXT_PUBLIC_TABLE_IGNORE_LIST || "_id,createdAt,updatedAt")
+          .split(",")
+          .map((s) => s.trim());
+              return !ignoreList.includes(key);
+            })
+            .map(([key, options], idx) => (
+              <Grid item xs={12} sm={6} key={key}>
+          <Autocomplete
+            options={options}
+            value={dynamicSelections[key] || null}
+            onChange={(_e, value) => handleDynamicSelection(key, value)}
+            renderInput={(params) => (
+              <TextField {...params} label={key} variant="outlined" />
+            )}
+          />
+              </Grid>
+            ))}
         </Grid>
       </Box>
 
@@ -218,15 +225,29 @@ export default function GetCategories() {
           <Table size="small">
             <TableHead>
               <TableRow>
-                {tableColumns.map((col) => (
+                {tableColumns
+                  .filter((col) => {
+                  const ignoreList = (process.env.NEXT_PUBLIC_TABLE_IGNORE_LIST || "_id,createdAt,updatedAt")
+                    .split(",")
+                    .map((s) => s.trim());
+                  return !ignoreList.includes(col);
+                  })
+                  .map((col) => (
                   <TableCell key={col}>{col}</TableCell>
-                ))}
+                  ))}
               </TableRow>
             </TableHead>
             <TableBody>
               {tableData.map((row, idx) => (
                 <TableRow key={idx}>
-                  {tableColumns.map((col) => (
+                  {tableColumns
+                  .filter((col) => {
+                  const ignoreList = (process.env.NEXT_PUBLIC_TABLE_IGNORE_LIST || "_id,createdAt,updatedAt")
+                    .split(",")
+                    .map((s) => s.trim());
+                  return !ignoreList.includes(col);
+                  })
+                  .map((col) => (
                     <TableCell key={col}>{row[col]?.toString() ?? ""}</TableCell>
                   ))}
                 </TableRow>
