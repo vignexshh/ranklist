@@ -13,8 +13,11 @@ export default withAuth({
 });
 
 export const config = {
-  matcher: [ "/rank/:path*", 
-    "/closing-rank/:path*",
+  matcher: [
+    // Protected routes only
+    "/rank/:path*", 
+    // "/closing-rank/:path*",
     "/pending-payment/:path*",
-],
+    // Add more protected routes here as needed
+  ],
 };

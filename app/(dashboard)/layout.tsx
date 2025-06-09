@@ -6,7 +6,7 @@ import { PageContainer } from '@toolpad/core/PageContainer';
 export default function Layout(props: { children: React.ReactNode }) {
   return (
     <DashboardLayout>
-      <PageContainer sx={{ bgcolor: 'primary.light', width: '100%' }}>{props.children}</PageContainer>
+      <PageContainer sx={{  width: '100%' }}>{props.children}</PageContainer>
     </DashboardLayout>
   );
 }  
