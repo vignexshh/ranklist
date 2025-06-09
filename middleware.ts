@@ -14,6 +14,7 @@ export default withAuth({
 
 export const config = {
   matcher: [ "/rank/:path*", 
+    "/closing-rank/:path*",
     "/pending-payment/:path*",
 ],
 };

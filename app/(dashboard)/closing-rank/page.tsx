@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { getDocuments } from '@/app/actions/data';// Your fetch function
+import { getDocuments } from '@/app/actions/data'; // Your fetch function
 
 interface DocumentData {
   _id: string;
